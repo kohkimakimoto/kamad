@@ -1,6 +1,6 @@
 # Kamad
 
-Kamad (short for Kamal in Docker) is a wrapper script for [Kamal](https://kamal-deploy.org/). It runs Kamal by in a Docker container.
+Kamad (short for Kamal in Docker) is a wrapper script for [Kamal](https://kamal-deploy.org/). It runs Kamal in a Docker container.
 
 ## Why Use Kamad?
 
