@@ -4,7 +4,7 @@ Kamad (short for Kamal in Docker) is a wrapper script for [Kamal](https://kamal-
 
 ## Why Use Kamad?
 
-[Kamal](https://github.com/basecamp) is a tool for deploying web applications anywhere developed by [Basecamp](https://github.com/basecamp).
+[Kamal](https://github.com/basecamp/kamal) is a tool for deploying web applications anywhere developed by [Basecamp](https://github.com/basecamp).
 It can be installed as a Ruby gem. Basecamp also provides an official Docker image and [instructions](https://kamal-deploy.org/docs/installation/) for using the dockerized version via a shell alias like the following:
 
 ```sh
