@@ -39,10 +39,10 @@ kamad deploy
 
 ### Deploy an application from a subdirectory
 
-Kamad provides the `-W|--kamal-workdir` option. So you can deploy an application from a subdirectory with this option.
+Kamad provides the `-w|--kamal-workdir` option. So you can deploy an application from a subdirectory with this option.
 
 ```sh
-kamad -W path/to/app deploy
+kamad -w path/to/app deploy
 ```
 
 ### Use secrets that are provided by environment variables

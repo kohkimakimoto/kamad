@@ -8,13 +8,13 @@ set -eu -o pipefail
 #/ Options:
 #/   -h, --help                    Display this help message
 #/
-#/   -w, --workdir <path>          Set the working directory (default: $PWD)
+#/   -W, --workdir <path>          Set the working directory (default: $PWD)
 #/                                 This working directory is mounted to /workdir in the container.
 #/                                 It should be the root of a git repository because Kamal gets the deployment version from the git commit by default.
 #/                                 This option can also be configured using the environment variable KAMAD_WORKDIR.
 #/
-#/   -W, --kamal-workdir <path>    Set the directory path inside the container where Kamal runs
-#/                                 It must be a relative path from -w|--workdir option or KAMAD_WORKDIR.
+#/   -w, --kamal-workdir <path>    Set the directory path inside the container where Kamal runs
+#/                                 It must be a relative path from -W|--workdir option or KAMAD_WORKDIR.
 #/                                 This option is useful when you want to run Kamal in a subdirectory of a git repository.
 #/                                 See also: https://github.com/basecamp/kamal/issues/799
 #/                                 This option can also be configured using the environment variable KAMAD_KAMAL_WORKDIR.
@@ -33,7 +33,7 @@ set -eu -o pipefail
 #/   $ kamad kamal deploy
 #/
 #/   # You can deploy the subdirectory without encountering the issue described in https://github.com/basecamp/kamal/issues/799
-#/   $ kamad -W path/to/app deploy
+#/   $ kamad -w path/to/app deploy
 #/
 #/   # You can set environment variables for using secrets in the container.
 #/   $ kamad -e KAMAL_REGISTRY_PASSWORD deploy
@@ -131,14 +131,14 @@ function main() {
         ;;
 
       # options for KAMAD_WORKDIR
-      '-w'|'--workdir')
+      '-W'|'--workdir')
         if [[ -z "${2:-}" ]] || [[ "${2:-}" =~ ^-+ ]]; then
           abort "option '$1' requires an argument."
         fi
         KAMAD_WORKDIR="$2"
         shift 2
         ;;
-      '-w='*)
+      '-W='*)
         optval="${opt:3}"
         if [[ -z "$optval" ]]; then
           abort "option '$1' requires an argument."
@@ -156,14 +156,14 @@ function main() {
         ;;
 
       # options for KAMAD_KAMAL_WORKDIR
-      '-W'|'--kamal-workdir')
+      '-w'|'--kamal-workdir')
         if [[ -z "${2:-}" ]] || [[ "${2:-}" =~ ^-+ ]]; then
           abort "option '$1' requires an argument."
         fi
         KAMAD_KAMAL_WORKDIR="$2"
         shift 2
         ;;
-      '-W='*)
+      '-w='*)
         optval="${opt:3}"
         if [[ -z "$optval" ]]; then
           abort "option '$1' requires an argument."
