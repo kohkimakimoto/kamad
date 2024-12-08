@@ -1,0 +1,233 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+#/ Usage: kamad [<options...>] kamal|<kamal subcommand> [<args...>]
+#/
+#/ Kamad (short for Kamal in Docker) is a wrapper script for Kamal. It runs Kamal by using Docker container.
+#/
+#/ Options:
+#/   -h, --help                    Display this help message
+#/
+#/   -w, --workdir <path>          Set the working directory (default: $PWD)
+#/                                 This working directory is mounted to /workdir in the container.
+#/                                 It should be the root of a git repository because Kamal gets the deployment version from the git commit by default.
+#/                                 This option can also be configured using the environment variable KAMAD_WORKDIR.
+#/
+#/   -W, --kamal-workdir <path>    Set the directory path inside the container where Kamal runs
+#/                                 It must be a relative path from -w|--workdir option or KAMAD_WORKDIR.
+#/                                 This option is useful when you want to run Kamal in a subdirectory of a git repository.
+#/                                 See also: https://github.com/basecamp/kamal/issues/799
+#/                                 This option can also be configured using the environment variable KAMAD_KAMAL_WORKDIR.
+#/
+#/   -e, --env <env>               Set the environment variable.
+#/                                 This option can be used the same way as the '-e' option of the 'docker run' command.
+#/                                 This option is useful when you want to use host environment variables with Kamal in the container.
+#/
+#/ Examples:
+#/   # You can run kamal command by 'kamad <kamal subcommand>' like the following.
+#/   $ kamad init
+#/   $ kamad deploy
+#/
+#/   # This is equivalent to the above examples.
+#/   $ kamad kamal init
+#/   $ kamad kamal deploy
+#/
+#/   # You can deploy the subdirectory without encountering the issue described in https://github.com/basecamp/kamal/issues/799
+#/   $ kamad -W path/to/app deploy
+#/
+#/   # You can set environment variables for using secrets in the container.
+#/   $ kamad -e KAMAL_REGISTRY_PASSWORD deploy
+#/
+#/ Copyright (c) Kohki Makimoto <kohki.makimoto@gmail.com>
+#/ The MIT License (MIT)
+
+function print_help() {
+  local filepath="${BASH_SOURCE[0]}"
+  grep '^#/' <"$filepath" | cut -c4-
+}
+
+function abort() {
+  local progname=$(basename $0)
+  { if [[ "$#" -eq 0 ]]; then cat -
+    else echo "${progname} ERROR: $*"
+    fi
+  } >&2
+  exit 1
+}
+
+function genEnvOptions() {
+  if [[ ${#KAMAD_ENV[@]} -eq 0 ]]; then
+    return
+  fi
+
+  local envOptions=""
+  for env in "${KAMAD_ENV[@]}"; do
+    if [[ -n "$envOptions" ]]; then
+      envOptions+=" "
+    fi
+    envOptions+="--env $env"
+  done
+  echo $envOptions
+}
+
+# runKamal runs Kamal by using Docker container.
+# This function never returns because it executes the Kamal command and replaces the current process.
+function runKamal() {
+  # KAMAD_KAMAL_WORKDIR must be a relative path.
+  if [[ -n "${KAMAD_KAMAL_WORKDIR}" ]] && [[ "${KAMAD_KAMAL_WORKDIR}" = /* ]]; then
+    abort "KAMAD_KAMAL_WORKDIR must be a relative path from KAMAD_WORKDIR (default: \$PWD)."
+  fi
+  if [[ -z "${KAMAD_KAMAL_WORKDIR}" ]]; then
+    KAMAD_KAMAL_WORKDIR="/workdir"
+  else
+    KAMAD_KAMAL_WORKDIR="/workdir/${KAMAD_KAMAL_WORKDIR}"
+  fi
+
+  # Generate environment options
+  local envOptions=$(genEnvOptions)
+
+  case $(uname) in
+    # macOS
+    Darwin)
+      exec docker run -it --rm \
+        -v "${KAMAD_WORKDIR}:/workdir" \
+        -v "/run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock" \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -e SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock" \
+        ${envOptions} \
+        -w "${KAMAD_KAMAL_WORKDIR}" \
+        ghcr.io/basecamp/kamal:latest "$@"
+      ;;
+    # Linux
+    *)
+      exec docker run -it --rm \
+        -v "${KAMAD_WORKDIR}:/workdir" \
+        -v "${SSH_AUTH_SOCK}:/ssh-agent" \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -e "SSH_AUTH_SOCK=/ssh-agent" \
+        ${envOptions} \
+        -w "${KAMAD_KAMAL_WORKDIR}" \
+        ghcr.io/basecamp/kamal:latest "$@"
+      ;;
+  esac
+}
+
+function main() {
+  # Setup variables
+  KAMAD_WORKDIR=${KAMAD_WORKDIR:-$PWD}
+  KAMAD_KAMAL_WORKDIR=${KAMAD_KAMAL_WORKDIR:-}
+  KAMAD_ENV=()
+
+  if [[ $# -eq 0 ]]; then
+    print_help
+    exit 0
+  fi
+
+  for opt in "$@"; do
+    case "$opt" in
+      '-h'|'--help')
+        print_help
+        exit 0
+        ;;
+
+      # options for KAMAD_WORKDIR
+      '-w'|'--workdir')
+        if [[ -z "${2:-}" ]] || [[ "${2:-}" =~ ^-+ ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_WORKDIR="$2"
+        shift 2
+        ;;
+      '-w='*)
+        optval="${opt:3}"
+        if [[ -z "$optval" ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_WORKDIR="$optval"
+        shift 1
+        ;;
+      '--workdir='*)
+        optval="${opt:10}"
+        if [[ -z "$optval" ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_WORKDIR="$optval"
+        shift 1
+        ;;
+
+      # options for KAMAD_KAMAL_WORKDIR
+      '-W'|'--kamal-workdir')
+        if [[ -z "${2:-}" ]] || [[ "${2:-}" =~ ^-+ ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_KAMAL_WORKDIR="$2"
+        shift 2
+        ;;
+      '-W='*)
+        optval="${opt:3}"
+        if [[ -z "$optval" ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_KAMAL_WORKDIR="$optval"
+        shift 1
+        ;;
+      '--kamal-workdir='*)
+        optval="${opt:16}"
+        if [[ -z "$optval" ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_KAMAL_WORKDIR="$optval"
+        shift 1
+        ;;
+      # options for KAMAD_ENV
+      '-e'|'--env')
+        if [[ -z "${2:-}" ]] || [[ "${2:-}" =~ ^-+ ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_ENV+=("$2")
+        shift 2
+        ;;
+      '-e='*)
+        optval="${opt:3}"
+        if [[ -z "$optval" ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_ENV+=("$optval")
+        shift 1
+        ;;
+      '--env='*)
+        optval="${opt:6}"
+        if [[ -z "$optval" ]]; then
+          abort "option '$1' requires an argument."
+        fi
+        KAMAD_ENV+=("$optval")
+        shift 1
+        ;;
+      -*)
+        abort "invalid option '$(echo $1)'"
+        ;;
+      *)
+        if [[ ! -z "${1:-}" ]] && [[ ! "${1:-}" =~ ^-+ ]]; then
+            # Check whether the current argument is 'kamal' or a Kamal subcommand.
+            # If it is, proxy the command to Kamal.
+            local command="" && [[ $# -ne 0 ]] && command=$1
+            case $command in
+            'kamal')
+                # Run Kamal
+                runKamal "${@:2}"
+                ;;
+            'accessory'|'app'|'audit'|'build'|'config'|'deploy'|'details'|'docs'|'help'|'init'|'lock'|'proxy'|'prune'|'redeploy'|'registry'|'remove'|'rollback'|'secrets'|'server'|'setup'|'upgrade'|'version')
+                # Run Kamal with the subcommand
+                runKamal "$@"
+                ;;
+            esac
+            abort "unknown command: $command"
+        fi
+
+        # This line is reached when the current $opt has already been handled by 'shift 2'.
+        ;;
+    esac
+  done
+}
+
+main "$@"
