@@ -24,18 +24,18 @@ set -eu -o pipefail
 #/                                 This option is useful when you want to use host environment variables with Kamal in the container.
 #/
 #/ Examples:
-#/   # You can run kamal command by 'kamad <kamal subcommand>' like the following.
+#/   # You can run the kamal command using 'kamad <kamal subcommand>' as shown below.
 #/   $ kamad init
 #/   $ kamad deploy
 #/
-#/   # This is equivalent to the above examples.
+#/   # The following commands are equivalent to the above examples.
 #/   $ kamad kamal init
 #/   $ kamad kamal deploy
 #/
 #/   # You can deploy the subdirectory without encountering the issue described in https://github.com/basecamp/kamal/issues/799
 #/   $ kamad -w path/to/app deploy
 #/
-#/   # You can set environment variables for using secrets in the container.
+#/   # You can set environment variables to use secrets in the container.
 #/   $ kamad -e KAMAL_REGISTRY_PASSWORD deploy
 #/
 #/ Copyright (c) Kohki Makimoto <kohki.makimoto@gmail.com>
