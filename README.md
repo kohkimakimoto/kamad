@@ -11,7 +11,7 @@ It can be installed as a Ruby gem. Basecamp also provides an official Docker ima
 alias kamal='docker run -it --rm -v "${PWD}:/workdir" -v "/run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock" -e SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock" -v /var/run/docker.sock:/var/run/docker.sock ghcr.io/basecamp/kamal:latest'
 ```
 
-While this approach is simple to set up and works well, the Dockerized version of Kamal has minor issues due to running Kamal in an isolated Docker container.
+While this approach is simple to set up and works well, the dockerized version of Kamal has minor issues due to running Kamal in an isolated Docker container.
 
 - You cannot deploy an application from a subdirectory: https://github.com/basecamp/kamal/issues/799
 - You cannot use secrets that are provided by environment variables: https://github.com/basecamp/kamal/issues/1258
