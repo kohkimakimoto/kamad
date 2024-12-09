@@ -3,7 +3,7 @@ set -eu -o pipefail
 
 #/ Usage: kamad [<options...>] kamal|<kamal subcommand> [<args...>]
 #/
-#/ Kamad (short for Kamal in Docker) is a wrapper script for Kamal. It runs Kamal by using Docker container.
+#/ Kamad (short for Kamal in Docker) is a wrapper script for Kamal. It runs Kamal in a Docker container.
 #/
 #/ Options:
 #/   -h, --help                    Display this help message
